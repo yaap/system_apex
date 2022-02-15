@@ -72,8 +72,9 @@ class ApexFileRepository final {
   // |metadata_partition|. Host can provide its apexes to a VM instance via the
   // virtual disk image which has partitions: (see
   // /packages/modules/Virtualization/microdroid for the details)
-  //  - metadata partition(/dev/block/vd*1) should be accessed via
-  //  /dev/block/by-name/payload-metadata.
+  //  - metadata partition(/dev/block/vd*1) should be accessed by
+  //  setting the system property apexd.payload_metadata.prop. On microdroid,
+  //  this is /dev/block/by-name/payload-metadata.
   //  - each subsequence partition(/dev/block/vd*{2,3,..}) represents an APEX
   //  archive.
   // It will fail if there is more than one apex with the same name in
@@ -81,7 +82,8 @@ class ApexFileRepository final {
   // is expected to be performed in a single thread during initialization of
   // apexd. After initialization is finished, all queries to the instance are
   // thread safe.
-  android::base::Result<void> AddBlockApex(
+  // This will return the number of block apexes that were added.
+  android::base::Result<int> AddBlockApex(
       const std::string& metadata_partition);
 
   // Populate instance by collecting data apex files from the given |data_dir|.
@@ -104,6 +106,10 @@ class ApexFileRepository final {
 
   // Returns root digest of an apex with the given |name| for block apexes.
   std::optional<std::string> GetBlockApexRootDigest(
+      const std::string& name) const;
+
+  // Returns timestamp to be used for the block apex of the given |name|.
+  std::optional<int64_t> GetBlockApexLastUpdateSeconds(
       const std::string& name) const;
 
   // Checks whether there is a pre-installed version of an apex with the given
@@ -146,7 +152,7 @@ class ApexFileRepository final {
   void Reset(const std::string& decompression_dir = kApexDecompressedDir) {
     pre_installed_store_.clear();
     data_store_.clear();
-    block_apex_root_digests_.clear();
+    block_apex_overrides_.clear();
     decompression_dir_ = decompression_dir;
     block_disk_path_.reset();
   }
@@ -187,10 +193,17 @@ class ApexFileRepository final {
   // Disk path where block apexes are read from. AddBlockApex() sets this.
   std::optional<std::string> block_disk_path_;
 
-  // Root digests for block apexes. When specified in block apex config, it
-  // should be used/checked when activating the apex to avoid
-  // TOCTOU(time-of-check to time-of-use).
-  std::unordered_map<std::string, std::string> block_apex_root_digests_;
+  // Information from the metadata for block apexes, overriding the file data.
+  struct BlockApexOverride {
+    // Root digest for the APEX. When specified in block apex config, it
+    // should be used/checked when activating the apex to avoid
+    // TOCTOU(time-of-check to time-of-use).
+    std::optional<std::string> block_apex_root_digest;
+    // The last update time of the APEX.
+    std::optional<int64_t> last_update_seconds;
+  };
+
+  std::unordered_map<std::string, BlockApexOverride> block_apex_overrides_;
 };
 
 }  // namespace apex
