@@ -214,13 +214,13 @@ int main(int argc, char** argv) {
 
     switch (arg) {
       case 0:
-        if (long_options[option_index].name == "deapexer") {
+        if (strcmp(long_options[option_index].name, "deapexer")) {
           deapexer = optarg;
         }
-        if (long_options[option_index].name == "debugfs") {
+        if (strcmp(long_options[option_index].name, "debugfs")) {
           debugfs = optarg;
         }
-        if (long_options[option_index].name == "sdk_version") {
+        if (strcmp(long_options[option_index].name, "sdk_version")) {
           if (!base::ParseInt(optarg, &sdk_version)) {
             PrintUsage();
             return EXIT_FAILURE;
