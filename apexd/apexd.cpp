@@ -3901,12 +3901,6 @@ Result<void> UnloadApexFromInit(const std::string& apex_name) {
     return Error() << "Failed to set " << kCtlApexUnloadSysprop << " to "
                 << apex_name;
   }
-  const static auto kTimeoutForUnloading = 10s;
-  const auto init_apex_prop_name = "init.apex." + apex_name;
-  if (!base::WaitForProperty(init_apex_prop_name, kInitApexUnloaded,
-                             kTimeoutForUnloading)) {
-    return Error() << "Failed to wait for init to unload " << apex_name;
-  }
   return {};
 }
 
@@ -3917,12 +3911,6 @@ Result<void> LoadApexFromInit(const std::string& apex_name) {
     // Log error and return early to avoid indefinite waiting for ack.
     return Error() << "Failed to set " << kCtlApexLoadSysprop << " to "
                 << apex_name;
-  }
-  const static auto kTimeoutForLoading = 10s;
-  const auto init_apex_prop_name = "init.apex." + apex_name;
-  if (!base::WaitForProperty(init_apex_prop_name, kInitApexLoaded,
-                             kTimeoutForLoading)) {
-    return Error() << "Failed to wait for init to load " << apex_name;
   }
   return {};
 }
