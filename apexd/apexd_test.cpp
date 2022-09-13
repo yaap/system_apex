@@ -427,7 +427,7 @@ TEST_F(ApexdUnitTest, SharedLibsDataVersionDeletedIfLower) {
   ASSERT_THAT(result, UnorderedElementsAre(ApexFileEq(ByRef(*shared_lib_v2))));
 }
 
-TEST_F(ApexdUnitTest, DISABLED_ProcessCompressedApex) {
+TEST_F(ApexdUnitTest, ProcessCompressedApex) {
   auto compressed_apex = ApexFile::Open(
       AddPreInstalledApex("com.android.apex.compressed.v1.capex"));
 
@@ -442,13 +442,6 @@ TEST_F(ApexdUnitTest, DISABLED_ProcessCompressedApex) {
   // Assert output path is not empty
   auto exists = PathExists(decompressed_file_path);
   ASSERT_THAT(exists, HasValue(true));
-
-  // Assert that decompressed apex is same as original apex
-  const std::string original_apex_file_path =
-      GetTestFile("com.android.apex.compressed.v1_original.apex");
-  auto comparison_result =
-      CompareFiles(original_apex_file_path, decompressed_file_path);
-  ASSERT_THAT(comparison_result, HasValue(true));
 
   // Assert that return value contains decompressed APEX
   auto decompressed_apex = ApexFile::Open(decompressed_file_path);
@@ -542,7 +535,7 @@ TEST_F(ApexdUnitTest, ProcessCompressedApexCanBeCalledMultipleTimes) {
 }
 
 // Test behavior of ProcessCompressedApex when is_ota_chroot is true
-TEST_F(ApexdUnitTest, DISABLED_ProcessCompressedApexOnOtaChroot) {
+TEST_F(ApexdUnitTest, ProcessCompressedApexOnOtaChroot) {
   auto compressed_apex = ApexFile::Open(
       AddPreInstalledApex("com.android.apex.compressed.v1.capex"));
 
@@ -560,13 +553,6 @@ TEST_F(ApexdUnitTest, DISABLED_ProcessCompressedApexOnOtaChroot) {
   auto exists = PathExists(decompressed_file_path);
   ASSERT_THAT(exists, HasValue(true))
       << decompressed_file_path << " does not exist";
-
-  // Assert that decompressed apex is same as original apex
-  const std::string original_apex_file_path =
-      GetTestFile("com.android.apex.compressed.v1_original.apex");
-  auto comparison_result =
-      CompareFiles(original_apex_file_path, decompressed_file_path);
-  ASSERT_THAT(comparison_result, HasValue(true));
 
   // Assert that return value contains the decompressed APEX
   auto apex_file = ApexFile::Open(decompressed_file_path);
