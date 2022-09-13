@@ -2350,7 +2350,7 @@ TEST_F(ApexdMountTest, OnOtaChrootBootstrapSharedLibsApexBothVersions) {
       "/apex/sharedlibs/lib/libsharedlibtest.so->"
       "/apex/com.android.apex.test.sharedlibs@1/lib/libsharedlibtest.so",
       "/apex/sharedlibs/lib/libc++.so->"
-      "/apex/com.android.apex.test.sharedlibs@1/lib/libc++.so",
+      "/apex/com.android.apex.test.sharedlibs@2/lib/libc++.so",
   };
   // On 64bit devices we also have lib64.
   if (!GetProperty("ro.product.cpu.abilist64", "").empty()) {
@@ -2362,7 +2362,7 @@ TEST_F(ApexdMountTest, OnOtaChrootBootstrapSharedLibsApexBothVersions) {
         "/apex/com.android.apex.test.sharedlibs@1/lib64/libsharedlibtest.so");
     expected.push_back(
         "/apex/sharedlibs/lib64/libc++.so->"
-        "/apex/com.android.apex.test.sharedlibs@1/lib64/libc++.so");
+        "/apex/com.android.apex.test.sharedlibs@2/lib64/libc++.so");
   }
 
   ASSERT_THAT(sharedlibs, UnorderedElementsAreArray(expected));
