@@ -180,7 +180,14 @@ int main(int /*argc*/, char** argv) {
     // the "--snapshotde" subcommand is received and snapshot/restore is
     // complete.
     android::apex::OnAllPackagesActivated(/*is_bootstrap=*/false);
+    // The boot sequence continues, and we can finish up configuring loop
+    // devices in peace.
+    auto result = android::apex::FinishLoopConfiguration();
     lifecycle.WaitForBootStatus(android::apex::RevertActiveSessionsAndReboot);
+    // Wait for loop devices to be configured before running the boot cleanup
+    // logic to make sure that service_manager won't kill apexd in the middle of
+    // loop configuration.
+    result.wait();
   }
 
   // Run cleanup routine before AllowServiceShutdown(), to prevent
