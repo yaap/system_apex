@@ -448,6 +448,14 @@ BinderStatus ApexService::getStagedApexInfos(
 
   // Retrieve classpath information
   auto class_path = ::android::apex::MountAndDeriveClassPath(*files);
+  if (!class_path.ok()) {
+    LOG(ERROR) << "Failed to getStagedApexInfo session id " << params.sessionId
+               << ": " << class_path.error();
+    return BinderStatus::fromExceptionCode(
+        BinderStatus::EX_SERVICE_SPECIFIC,
+        String8(class_path.error().message().c_str()));
+  }
+
   for (const auto& apex_file : *files) {
     ApexInfo apex_info = GetApexInfo(apex_file);
     auto package_name = apex_info.moduleName;
