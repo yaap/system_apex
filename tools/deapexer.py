@@ -37,8 +37,8 @@ BLOCK_SIZE = 4096
 
 class ApexImageEntry(object):
 
-  def __init__(self, name, base_dir, permissions, size, ino, extents, is_directory=False,
-               is_symlink=False):
+  def __init__(self, name, base_dir, permissions, size, ino, extents,
+               is_directory, is_symlink, security_context):
     self._name = name
     self._base_dir = base_dir
     self._permissions = permissions
@@ -47,6 +47,7 @@ class ApexImageEntry(object):
     self._is_symlink = is_symlink
     self._ino = ino
     self._extents = extents
+    self._security_context = security_context
 
   @property
   def name(self):
@@ -83,6 +84,10 @@ class ApexImageEntry(object):
   @property
   def extents(self):
     return self._extents
+
+  @property
+  def security_context(self):
+    return self._security_context
 
   def __str__(self):
     ret = ''
@@ -201,9 +206,25 @@ class Apex(object):
         except:
           extents = [] # [] means that we failed to retrieve the file location successfully
 
-      entries.append(ApexImageEntry(name, base_dir=path, permissions=int(bits[3:], 8), size=size,
-                                    is_directory=is_directory, is_symlink=is_symlink, ino=ino,
-                                    extents=extents))
+      # get 'security.selinux' attribute
+      entry_path = os.path.join(path, name)
+      stdout = subprocess.check_output([
+        self._debugfs,
+        '-R',
+        f'ea_get -V {entry_path} security.selinux',
+        self._payload
+      ], text=True, stderr=subprocess.DEVNULL)
+      security_context = stdout.rstrip('\n\x00')
+
+      entries.append(ApexImageEntry(name,
+                                    base_dir=path,
+                                    permissions=int(bits[3:], 8),
+                                    size=size,
+                                    is_directory=is_directory,
+                                    is_symlink=is_symlink,
+                                    ino=ino,
+                                    extents=extents,
+                                    security_context=security_context))
 
     return ApexImageDirectory(path, entries, self)
 
@@ -250,6 +271,8 @@ def RunList(args):
       res += e.full_path
       if args.extents:
         res += ' [' + '-'.join(str(x) for x in e.extents) + ']'
+      if args.contexts:
+        res += ' ' + e.security_context
       print(res)
 
 
@@ -355,6 +378,9 @@ def main(argv):
   parser_list.add_argument('apex', type=str, help='APEX file')
   parser_list.add_argument('--size', help='also show the size of the files', action="store_true")
   parser_list.add_argument('--extents', help='also show the location of the files', action="store_true")
+  parser_list.add_argument('-Z', '--contexts',
+                           help='also show the security context of the files',
+                           action='store_true')
   parser_list.set_defaults(func=RunList)
 
   parser_extract = subparsers.add_parser('extract', help='extracts content of an APEX to the given '
