@@ -54,8 +54,17 @@ class ApexImageEntry(object):
     return self._name
 
   @property
+  def root(self):
+    return self._base_dir == './' and self._name == '.'
+
+  @property
   def full_path(self):
-    return os.path.join(self._base_dir, self._name)
+    if self.root:
+      return self._base_dir  # './'
+    path = os.path.join(self._base_dir, self._name)
+    if self.is_directory:
+      path += '/'
+    return path
 
   @property
   def is_directory(self):
@@ -263,8 +272,9 @@ def RunList(args):
 
   with Apex(args) as apex:
     for e in apex.list(is_recursive=True):
-      if e.is_directory:
-        continue
+      # dot(., ..) directories
+      if not e.root and e.name in ('.', '..'):
+          continue
       res = ''
       if args.size:
         res += e.size + ' '
