@@ -80,6 +80,7 @@ cc_defaults {
   shared_libs: [
     "liblog",
     "liblogwrap",
+    "libvintf",
   ],
   static_libs: [
     "libapex",
@@ -187,6 +188,7 @@ cc_library_static {
     "apexd_private.cpp",
     "apexd_session.cpp",
     "apexd_verity.cpp",
+    "apexd_vendor_apex.cpp",
   ],
   export_include_dirs: ["."],
   generated_sources: ["apex-info-list-tinyxml"],
