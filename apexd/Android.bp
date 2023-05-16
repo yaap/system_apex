@@ -162,6 +162,7 @@ cc_binary {
   ],
   exclude_shared_libs: [
     "libprotobuf-cpp-full",
+    "libvintf",
   ],
   // Just like the init, apexd should be able to run without
   // any APEX activated. To do so, it uses the bootstrap linker
