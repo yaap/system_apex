@@ -164,7 +164,6 @@ class Apex(object):
     self._fsckerofs = args.fsckerofs_path
     self._apex = args.apex
     self._tempdir = tempfile.mkdtemp()
-    # TODO(b/139125405): support flattened APEXes.
     with zipfile.ZipFile(self._apex, 'r') as zip_ref:
       self._payload = zip_ref.extract('apex_payload.img', path=self._tempdir)
     self._payload_fs_type = RetrieveFileSystemType(self._payload)
