@@ -207,7 +207,11 @@ class MountNamespaceRestorer final {
 
   ~MountNamespaceRestorer() {
     if (original_namespace_.get() != -1) {
-      if (setns(original_namespace_.get(), CLONE_NEWNS) == -1) {
+      // Since apexd is a multithread process. setns(fd, CLONE_NEWNS) may not
+      // work (fail with EINVAL). Retrying until success fixes it. This is
+      // acceptable since this class is for only tests. In the worst case tests
+      // will hang with bunch of logs.
+      while (setns(original_namespace_.get(), CLONE_NEWNS) == -1) {
         PLOG(ERROR) << "Failed to switch back to " << original_namespace_.get();
       }
     }
