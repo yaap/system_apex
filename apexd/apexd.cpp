@@ -164,6 +164,9 @@ static const std::vector<std::string> kBootstrapApexes = ([]() {
 static constexpr const int kNumRetriesWhenCheckpointingEnabled = 1;
 
 bool IsBootstrapApex(const ApexFile& apex) {
+  if (IsVendorApex(apex) && apex.GetManifest().vendorbootstrap()) {
+    return true;
+  }
   return std::find(kBootstrapApexes.begin(), kBootstrapApexes.end(),
                    apex.GetManifest().name()) != kBootstrapApexes.end();
 }
