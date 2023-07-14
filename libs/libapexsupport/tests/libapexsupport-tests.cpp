@@ -15,7 +15,6 @@
  */
 
 #include <dlfcn.h>
-#include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
 #include <android/apexsupport.h>
@@ -48,6 +47,8 @@ TEST_F(LibApexSupportTest, AApexInfo_with_no_error_code) {
   EXPECT_EQ(AApexInfo_create(nullptr), AAPEXINFO_NULL);
 }
 
+#ifdef __ANDROID_APEX__
+
 TEST_F(LibApexSupportTest, AApexInfo) {
   AApexInfo *info;
   EXPECT_EQ(AApexInfo_create(&info), AAPEXINFO_OK);
@@ -61,7 +62,14 @@ TEST_F(LibApexSupportTest, AApexInfo) {
   AApexInfo_destroy(info);
 }
 
-// TODO(b/271488212) Add tests for error cases
+#else // __ANDROID_APEX__
+
+TEST_F(LibApexSupportTest, AApexInfo) {
+  AApexInfo *info;
+  EXPECT_EQ(AApexInfo_create(&info), AAPEXINFO_NO_APEX);
+}
+
+#endif // __ANDROID_APEX__
 
 int main(int argc, char **argv) {
   ::testing::InitGoogleTest(&argc, argv);
