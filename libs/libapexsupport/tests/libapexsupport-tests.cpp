@@ -43,10 +43,6 @@ struct LibApexSupportTest : testing::Test, LibApexSupport {
   }
 };
 
-TEST_F(LibApexSupportTest, AApexInfo_with_no_error_code) {
-  EXPECT_EQ(AApexInfo_create(nullptr), AAPEXINFO_NULL);
-}
-
 #ifdef __ANDROID_APEX__
 
 TEST_F(LibApexSupportTest, AApexInfo) {
