@@ -41,13 +41,6 @@ namespace apex {
 
 namespace {
 
-// Starting from R, apexd prefers /metadata partition (kNewApexSessionsDir) as
-// location for sessions-related information. For devices that don't have
-// /metadata partition, apexd will fallback to the /data one
-// (kOldApexSessionsDir).
-static constexpr const char* kOldApexSessionsDir = "/data/apex/sessions";
-static constexpr const char* kNewApexSessionsDir = "/metadata/apex/sessions";
-
 static constexpr const char* kStateFileName = "state";
 
 static Result<SessionState> ParseSessionState(const std::string& session_dir) {
@@ -67,10 +60,7 @@ static Result<SessionState> ParseSessionState(const std::string& session_dir) {
 
 }  // namespace
 
-ApexSession::ApexSession(SessionState state, std::string session_dir)
-    : state_(std::move(state)), session_dir_(std::move(session_dir)) {}
-
-std::string ApexSession::GetSessionsDir() {
+std::string GetSessionsDir() {
   static std::string result;
   static std::once_flag once_flag;
   std::call_once(once_flag, [&]() {
@@ -83,6 +73,9 @@ std::string ApexSession::GetSessionsDir() {
   });
   return result;
 }
+
+ApexSession::ApexSession(SessionState state, std::string session_dir)
+    : state_(std::move(state)), session_dir_(std::move(session_dir)) {}
 
 Result<void> ApexSession::MigrateToMetadataSessionsDir() {
   return MoveDir(kOldApexSessionsDir, kNewApexSessionsDir);

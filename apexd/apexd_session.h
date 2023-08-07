@@ -28,14 +28,22 @@
 namespace android {
 namespace apex {
 
+// Starting from R, apexd prefers /metadata partition (kNewApexSessionsDir) as
+// location for sessions-related information. For devices that don't have
+// /metadata partition, apexd will fallback to the /data one
+// (kOldApexSessionsDir).
+static constexpr const char* kOldApexSessionsDir = "/data/apex/sessions";
+static constexpr const char* kNewApexSessionsDir = "/metadata/apex/sessions";
+
+// Returns top-level directory to store sessions metadata in.
+// If device has /metadata partition, this will return
+// /metadata/apex/sessions, on all other devices it will return
+// /data/apex/sessions.
+std::string GetSessionsDir();
+
 // TODO(b/288309411): remove static functions in this class.
 class ApexSession {
  public:
-  // Returns top-level directory to store sessions metadata in.
-  // If device has /metadata partition, this will return
-  // /metadata/apex/sessions, on all other devices it will return
-  // /data/apex/sessions.
-  static std::string GetSessionsDir();
   // Migrates content of /data/apex/sessions to /metadata/apex/sessions.
   // If device doesn't have /metadata partition this call will be a no-op.
   // If /data/apex/sessions this call will also be a no-op.
