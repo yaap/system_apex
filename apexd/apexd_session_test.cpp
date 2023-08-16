@@ -52,7 +52,7 @@ TEST(ApexdSessionTest, GetSessionsDirSessionsStoredInMetadata) {
     GTEST_SKIP() << "Device doesn't have /metadata partition";
   }
 
-  std::string result = ApexSession::GetSessionsDir();
+  std::string result = GetSessionsDir();
   ASSERT_EQ(result, "/metadata/apex/sessions");
 }
 
@@ -61,7 +61,7 @@ TEST(ApexdSessionTest, GetSessionsDirNoMetadataPartitionFallbackToData) {
     GTEST_SKIP() << "Device has /metadata partition";
   }
 
-  std::string result = ApexSession::GetSessionsDir();
+  std::string result = GetSessionsDir();
   ASSERT_EQ(result, "/data/apex/sessions");
 }
 
