@@ -142,17 +142,6 @@ std::vector<ApexSession> ApexSession::GetSessionsInState(
   return sessions;
 }
 
-std::vector<ApexSession> ApexSession::GetActiveSessions() {
-  auto sessions = GetSessions();
-  std::vector<ApexSession> active_sessions;
-  for (const ApexSession& session : sessions) {
-    if (!session.IsFinalized() && session.GetState() != SessionState::UNKNOWN) {
-      active_sessions.push_back(session);
-    }
-  }
-  return active_sessions;
-}
-
 SessionState::State ApexSession::GetState() const { return state_.state(); }
 
 int ApexSession::GetId() const { return state_.id(); }
