@@ -16,11 +16,7 @@
 
 #include "apexd_session.h"
 
-#include "apexd_utils.h"
-#include "string_log.h"
-
-#include "session_state.pb.h"
-
+#include <android-base/errors.h>
 #include <android-base/logging.h>
 #include <android-base/stringprintf.h>
 #include <dirent.h>
@@ -30,6 +26,10 @@
 #include <fstream>
 #include <optional>
 #include <utility>
+
+#include "apexd_utils.h"
+#include "session_state.pb.h"
+#include "string_log.h"
 
 using android::base::Error;
 using android::base::Result;
@@ -49,6 +49,21 @@ static constexpr const char* kOldApexSessionsDir = "/data/apex/sessions";
 static constexpr const char* kNewApexSessionsDir = "/metadata/apex/sessions";
 
 static constexpr const char* kStateFileName = "state";
+
+static Result<SessionState> ParseSessionState(const std::string& session_dir) {
+  auto path = StringPrintf("%s/%s", session_dir.c_str(), kStateFileName);
+  SessionState state;
+  std::fstream state_file(path, std::ios::in | std::ios::binary);
+  if (!state_file) {
+    return Error() << "Failed to open " << path;
+  }
+
+  if (!state.ParseFromIstream(&state_file)) {
+    return Error() << "Failed to parse " << path;
+  }
+
+  return std::move(state);
+}
 
 }  // namespace
 
@@ -87,18 +102,11 @@ Result<ApexSession> ApexSession::CreateSession(int session_id) {
 
 Result<ApexSession> ApexSession::GetSessionFromDir(
     const std::string& session_dir) {
-  auto path = StringPrintf("%s/%s", session_dir.c_str(), kStateFileName);
-  SessionState state;
-  std::fstream state_file(path, std::ios::in | std::ios::binary);
-  if (!state_file) {
-    return Error() << "Failed to open " << path;
+  auto state = ParseSessionState(session_dir);
+  if (!state.ok()) {
+    return state.error();
   }
-
-  if (!state.ParseFromIstream(&state_file)) {
-    return Error() << "Failed to parse " << path;
-  }
-
-  return ApexSession(state, std::move(session_dir));
+  return ApexSession(*state, session_dir);
 }
 
 Result<ApexSession> ApexSession::GetSession(int session_id) {
@@ -197,7 +205,7 @@ ApexSession::GetApexNames() const {
   return state_.apex_names();
 }
 
-const std::string& ApexSession::GetSesionDir() const { return session_dir_; }
+const std::string& ApexSession::GetSessionDir() const { return session_dir_; }
 
 void ApexSession::SetBuildFingerprint(const std::string& fingerprint) {
   *(state_.mutable_expected_build_fingerprint()) = fingerprint;
@@ -259,7 +267,7 @@ Result<void> ApexSession::DeleteSession() const {
 std::ostream& operator<<(std::ostream& out, const ApexSession& session) {
   return out << "[id = " << session.GetId()
              << "; state = " << SessionState::State_Name(session.GetState())
-             << "; session_dir = " << session.GetSesionDir() << "]";
+             << "; session_dir = " << session.GetSessionDir() << "]";
 }
 
 void ApexSession::DeleteFinalizedSessions() {
@@ -273,6 +281,94 @@ void ApexSession::DeleteFinalizedSessions() {
       LOG(WARNING) << "Failed to delete finalized session: " << session.GetId();
     }
   }
+}
+
+ApexSessionManager::ApexSessionManager(std::string sessions_base_dir)
+    : sessions_base_dir_(std::move(sessions_base_dir)) {}
+
+ApexSessionManager::ApexSessionManager(ApexSessionManager&& other) noexcept
+    : sessions_base_dir_(std::move(other.sessions_base_dir_)) {}
+
+ApexSessionManager& ApexSessionManager::operator=(
+    ApexSessionManager&& other) noexcept {
+  sessions_base_dir_ = std::move(other.sessions_base_dir_);
+  return *this;
+}
+
+std::unique_ptr<ApexSessionManager> ApexSessionManager::Create(
+    std::string sessions_base_dir) {
+  return std::unique_ptr<ApexSessionManager>(
+      new ApexSessionManager(std::move(sessions_base_dir)));
+}
+
+Result<ApexSession> ApexSessionManager::CreateSession(int session_id) {
+  SessionState state;
+  // Create session directory
+  std::string session_dir =
+      sessions_base_dir_ + "/" + std::to_string(session_id);
+  OR_RETURN(CreateDirIfNeeded(session_dir, 0700));
+  state.set_id(session_id);
+
+  return ApexSession(std::move(state), std::move(session_dir));
+}
+
+Result<ApexSession> ApexSessionManager::GetSession(int session_id) const {
+  auto session_dir =
+      StringPrintf("%s/%d", sessions_base_dir_.c_str(), session_id);
+
+  auto state = OR_RETURN(ParseSessionState(session_dir));
+  return ApexSession(std::move(state), std::move(session_dir));
+}
+
+std::vector<ApexSession> ApexSessionManager::GetSessions() const {
+  std::vector<ApexSession> sessions;
+
+  auto walk_status = WalkDir(sessions_base_dir_, [&](const auto& entry) {
+    if (!entry.is_directory()) {
+      return;
+    }
+
+    std::string session_dir = entry.path();
+    auto state = ParseSessionState(session_dir);
+    if (!state.ok()) {
+      LOG(WARNING) << state.error();
+      return;
+    }
+
+    ApexSession session(std::move(*state), std::move(session_dir));
+    sessions.push_back(std::move(session));
+  });
+
+  if (!walk_status.ok()) {
+    LOG(WARNING) << walk_status.error();
+    return std::move(sessions);
+  }
+
+  return std::move(sessions);
+}
+
+std::vector<ApexSession> ApexSessionManager::GetSessionsInState(
+    const SessionState::State& state) const {
+  std::vector<ApexSession> sessions = GetSessions();
+  sessions.erase(std::remove_if(sessions.begin(), sessions.end(),
+                                [&](const ApexSession& s) {
+                                  return s.GetState() != state;
+                                }),
+                 sessions.end());
+
+  return sessions;
+}
+
+Result<void> ApexSessionManager::MigrateFromOldSessionsDir(
+    const std::string& old_sessions_base_dir) {
+  if (old_sessions_base_dir == sessions_base_dir_) {
+    LOG(INFO)
+        << old_sessions_base_dir
+        << " is the same as the current session directory. Nothing to migrate";
+    return {};
+  }
+
+  return MoveDir(old_sessions_base_dir, sessions_base_dir_);
 }
 
 }  // namespace apex
