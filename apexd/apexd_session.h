@@ -45,7 +45,6 @@ class ApexSession {
   static std::vector<ApexSession> GetSessions();
   static std::vector<ApexSession> GetSessionsInState(
       ::apex::proto::SessionState::State state);
-  static std::vector<ApexSession> GetActiveSessions();
   ApexSession() = delete;
 
   const google::protobuf::RepeatedField<int> GetChildSessionIds() const;
