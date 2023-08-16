@@ -2453,7 +2453,14 @@ Result<void> RevertActiveSessions(const std::string& crashing_native_process,
   // First check whenever there is anything to revert. If there is none, then
   // fail. This prevents apexd from boot looping a device in case a native
   // process is crashing and there are no apex updates.
-  auto active_sessions = ApexSession::GetActiveSessions();
+  auto active_sessions = ApexSession::GetSessions();
+  active_sessions.erase(
+      std::remove_if(active_sessions.begin(), active_sessions.end(),
+                     [](const auto& s) {
+                       return s.IsFinalized() ||
+                              s.GetState() == SessionState::UNKNOWN;
+                     }),
+      active_sessions.end());
   if (active_sessions.empty()) {
     return Error() << "Revert requested, when there are no active sessions.";
   }
