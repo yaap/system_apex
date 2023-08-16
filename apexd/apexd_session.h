@@ -58,6 +58,7 @@ class ApexSession {
   bool IsRollback() const;
   int GetRollbackId() const;
   const google::protobuf::RepeatedPtrField<std::string> GetApexNames() const;
+  const std::string& GetSesionDir() const;
 
   void SetChildSessionIds(const std::vector<int>& child_session_ids);
   void SetBuildFingerprint(const std::string& fingerprint);
@@ -75,11 +76,12 @@ class ApexSession {
   static void DeleteFinalizedSessions();
 
  private:
-  explicit ApexSession(::apex::proto::SessionState state);
+  ApexSession(::apex::proto::SessionState state, std::string session_dir);
   ::apex::proto::SessionState state_;
+  std::string session_dir_;
 
-  static android::base::Result<ApexSession> GetSessionFromFile(
-      const std::string& path);
+  static android::base::Result<ApexSession> GetSessionFromDir(
+      const std::string& session_dir);
 };
 
 std::ostream& operator<<(std::ostream& out, const ApexSession& session);
