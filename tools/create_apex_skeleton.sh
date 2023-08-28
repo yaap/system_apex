@@ -6,12 +6,21 @@
 set -e
 
 usage() {
-  echo "Usage $0 [-k existing_apex_key_name] apex_package_name"
+  echo "Usage $0 [options] apex_package_name"
+  echo "  -v"
+  echo "       Whether this is a vendor APEX"
+  echo "  -k existing_apex_keyname"
+  echo "       Use existing key instead of creating a new key"
   exit -1
 }
 
-while getopts "k:" opt; do
+is_vendor=0
+
+while getopts "vk:" opt; do
   case $opt in
+    v)
+      is_vendor=1
+      ;;
     k)
       APEX_KEY=${OPTARG}
       ;;
@@ -97,6 +106,8 @@ EOF
 
 fi
 
+if ((is_vendor == 0)); then
+
 cat >> Android.bp <<EOF
 apex {
     name: "${APEX_NAME}",
@@ -117,3 +128,33 @@ cat > manifest.json << EOF
     "version": 0
 }
 EOF
+
+else
+
+cat >> Android.bp <<EOF
+apex {
+    name: "${APEX_NAME}",
+    manifest: "manifest.json",
+    file_contexts: "file_contexts",
+    key: "${APEX_KEY}.key",
+    certificate: ":${APEX_KEY}.certificate",
+    updatable: false,
+    vendor: true,
+}
+EOF
+
+cat > manifest.json << EOF
+{
+    "name": "${APEX_NAME}",
+    "version": 1
+}
+EOF
+
+cat > file_contexts << EOF
+(/.*)?                                                          u:object_r:vendor_file:s0
+/etc(/.*)?                                                      u:object_r:vendor_configs_file:s0
+# Add more ...
+# /bin/hw/foo                                                   u:object_r:hal_foo_exec:s0
+EOF
+
+fi
