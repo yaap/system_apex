@@ -5,17 +5,28 @@
 # Exit early if any subcommands fail.
 set -e
 
+usage() {
+  echo "Usage $0 [-k existing_apex_key_name] apex_package_name"
+  exit -1
+}
+
+while getopts "k:" opt; do
+  case $opt in
+    k)
+      APEX_KEY=${OPTARG}
+      ;;
+    *)
+      usage
+  esac
+done
+
+shift $((OPTIND-1))
 APEX_NAME=$1
 if [ -z ${APEX_NAME} ]
 then
-   echo "Missing apex package name"
-   echo "Usage $0 apex_package_name [existing_apex_key_name]"
-   exit -1
+  echo "Missing apex package name"
+  usage
 fi
-
-# Optional. If provided, uses existing key files and module name.
-# Otherwise, generates new key files using the APEX_NAME.
-APEX_KEY=$2
 
 YEAR=$(date +%Y)
 mkdir -p ${APEX_NAME}
@@ -99,10 +110,10 @@ EOF
 
 cat > manifest.json << EOF
 {
-  "name": "${APEX_NAME}",
+    "name": "${APEX_NAME}",
 
-  // Placeholder module version to be replaced during build.
-  // Do not change!
-  "version": 0
+    // Placeholder module version to be replaced during build.
+    // Do not change!
+    "version": 0
 }
 EOF
